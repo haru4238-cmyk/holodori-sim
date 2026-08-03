@@ -142,7 +142,7 @@
     </div>
 
     <div id="mode-auto" style="display:none;">
-      <p class="hint">所持カードの中から、衣装スキル・パッシブの条件（期生／ユニット／タイプ人数）をできるだけ満たす編成を探します。完全一致の実機スコアではありません。</p>
+      <p class="hint">所持カードの中から、衣装スキル・パッシブの条件（ID期生／ユニット／タイプ人数など）をできるだけ満たす組み合わせを広く探します。結果にはスキル全文と発動／未発動も出ます。完全一致の実機スコアではありません。</p>
       <label class="field">最適化の目標</label>
       <div class="row">
         <select id="autoGoal">
@@ -161,8 +161,8 @@
     </div>
 
     <div id="mode-candidates" style="display:none;">
-      <p class="hint">所持カードから、方針の違うシナジー候補をいくつか出します。</p>
-      <button class="btn" type="button" data-action="run-candidates">候補を生成</button>
+      <p class="hint">所持カードから、目標別・ユニット寄せ別など最大16通りの組み合わせを出します。各候補でスキル内容も確認できます。所持が多いと数秒かかることがあります。</p>
+      <button class="btn" type="button" data-action="run-candidates">候補をたくさん生成</button>
       <div id="candidateList" style="margin-top:12px;"></div>
     </div>
 

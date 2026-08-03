@@ -62,7 +62,7 @@ def main():
             s["focusStat"] = "total"
 
     app_data = {
-        "version": "3.4.0",
+        "version": "3.5.0",
         "updated": "2026-08-04",
         "source": "Gamerch ホロドリ攻略Wiki（カード）/ ボードはユーザー登録共有 / 編成はスキルシナジー概算",
         "cards": cards,

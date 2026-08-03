@@ -168,19 +168,23 @@
    * 衣装/パッシブ文言からシナジー効果を抽出（概算）
    * 例: 「Promise2人以上で全員の全パラメータが50%UP」
    *     「キュートタイプ2人のセンスが41%UP」
+   *     「ピュアタイプ2人のスコアサポート11%」
    */
   function parseSkillEffects(text) {
     const t = String(text || '');
     const effects = [];
     if (!t) return effects;
     const group = '(?:ID[123]期生|[0-5]期生|Advent|Myth|Promise|ReGOSS|ReGLOSS|holoX|ゲーマーズ|ハッピータイプ|ピュアタイプ|キュートタイプ|ハッピー|ピュア|キュート)';
-    const stat = '(?:全パラメータ|パフォーマンス|テクニック|センス|スコアサポート効果?)';
+    // 「スコアサポート効果?」だと「効」必須になり「スコアサポート11%」を取りこぼす → (?:効果)?
+    const stat = '(?:全パラメータ|パフォーマンス|テクニック|センス|スコアサポート(?:効果)?)';
     const re = new RegExp(
       `(?:(${group})が?)?(\\d+)人(?:以上)?(?:で)?(?:(${group})(\\d+)人(?:以上)?の)?(全員|自身)?(?:の)?(${stat})\\s*が?\\s*(\\d+(?:\\.\\d+)?)\\s*%(?:UP|アップ)?`,
       'gi'
     );
+    const covered = []; // 条件付きで取った範囲（全員〜の二重計上防止）
     let m;
     while ((m = re.exec(t)) !== null) {
+      covered.push([m.index, m.index + m[0].length]);
       const condGroup = normalizeGroupName(m[1] || '');
       const condCount = Number(m[2] || 0);
       const targetGroup = normalizeGroupName(m[3] || '');
@@ -199,6 +203,7 @@
         applyTo = 'group';
         applyGroup = targetGroup;
       } else if (!scope && needGroup) {
+        // 「0期生2人のセンスが43%UP」→ そのグループに適用
         applyTo = 'group';
         applyGroup = needGroup;
         needCount = needCount || 2;
@@ -207,27 +212,34 @@
       } else {
         applyTo = 'team';
       }
-      const atLeast = /以上/.test(m[0]);
+      const atLeast = /以上/.test(m[0]) || !!needGroup;
       effects.push({
-        needGroup, needCount: needCount || 0, atLeast: atLeast || !!needGroup,
-        applyTo, applyGroup, stat: statName, pct
+        needGroup, needCount: needCount || 0, atLeast,
+        applyTo, applyGroup, stat: statName, pct,
+        raw: m[0]
       });
     }
-    // 条件なし「全員の〜」「自身の〜」
+    // 条件なし「全員の〜」「自身の〜」（条件付きマッチと重なる場合はスキップ）
     const rePlain = new RegExp(`(全員|自身)の(${stat})\\s*が?\\s*(\\d+(?:\\.\\d+)?)\\s*%(?:UP|アップ)?`, 'gi');
     while ((m = rePlain.exec(t)) !== null) {
-      // すでに人条件付きで取った位置と重なる場合はスキップ（簡易: 同じstat+pct）
+      const start = m.index;
+      const end = start + m[0].length;
+      if (covered.some(([a, b]) => start >= a && end <= b)) continue;
+      // 直前に「N人」があるなら条件付き側の一部
+      const before = t.slice(Math.max(0, start - 28), start);
+      if (/\d+人/.test(before)) continue;
       const pct = Number(m[3] || 0);
       const statName = m[2];
       if (!pct) continue;
-      const dup = effects.some((e) => e.stat === statName && e.pct === pct && !e.needGroup);
+      const dup = effects.some((e) => e.stat === statName && e.pct === pct && !e.needGroup && e.applyTo === (m[1] === '自身' ? 'self' : 'team'));
       if (dup) continue;
       effects.push({
         needGroup: '', needCount: 0, atLeast: true,
         applyTo: m[1] === '自身' ? 'self' : 'team',
         applyGroup: '',
         stat: statName,
-        pct
+        pct,
+        raw: m[0]
       });
     }
     return effects;
@@ -285,6 +297,7 @@
     const cards = entries.map((e) => e.c);
     const groupCounts = countGroupsInTeam(cards);
     const notes = [];
+    const skillDetails = []; // 編成内のスキル全文＋発動状況
     const teamMult = { all: 0, perf: 0, tech: 0, sense: 0, scoreSupport: 0 };
     const selfMult = entries.map(() => ({ all: 0, perf: 0, tech: 0, sense: 0, scoreSupport: 0 }));
     const groupMult = {}; // group -> mult
@@ -294,31 +307,60 @@
       return groupMult[g];
     }
 
+    function describeEffect(ef, ok) {
+      const cond = ef.needGroup
+        ? `${ef.needGroup}${ef.needCount}人${ef.atLeast ? '以上' : ''}`
+        : '条件なし';
+      const target = ef.applyTo === 'self' ? '自身'
+        : ef.applyTo === 'group' ? `${ef.applyGroup || '?'}向け`
+        : '全員';
+      return `${ok ? '発動' : '未発動'}: ${cond} → ${target} ${ef.stat}+${ef.pct}%`;
+    }
+
+    function registerSkill(kind, e, text, effects, applyFn) {
+      const lines = [];
+      effects.forEach((ef) => {
+        const ok = effectIsActive(ef, groupCounts);
+        lines.push(describeEffect(ef, ok));
+        if (ok) applyFn(ef);
+        else if (ef.needGroup) {
+          notes.push(`未発動: ${kind}/${e.c.name}（${ef.needGroup}${ef.needCount}人必要・今${groupCounts[ef.needGroup] || 0}人）`);
+        }
+      });
+      skillDetails.push({
+        role: e.isLeader ? 'リーダー' : 'メンバー',
+        name: e.c.name,
+        costume: e.c.costume || '',
+        kind,
+        text: text || '（なし）',
+        lines,
+        activeCount: effects.filter((ef) => effectIsActive(ef, groupCounts)).length,
+        totalEffects: effects.length
+      });
+    }
+
     // リーダー衣装スキル
     const leader = entries.find((e) => e.isLeader);
     if (leader) {
       const effects = parseSkillEffects(leader.c.costume_skill);
-      effects.forEach((ef) => {
-        const ok = effectIsActive(ef, groupCounts);
-        if (!ok) {
-          if (ef.needGroup) notes.push(`未発動: 衣装（${ef.needGroup}${ef.needCount}人必要）`);
-          return;
-        }
+      registerSkill('衣装', leader, leader.c.costume_skill, effects, (ef) => {
         if (ef.applyTo === 'self') applyEffectToMult(selfMult[entries.indexOf(leader)], ef, true);
         else if (ef.applyTo === 'group' && ef.applyGroup) applyEffectToMult(bumpGroup(ef.applyGroup), ef, true);
         else applyEffectToMult(teamMult, ef, true);
-        notes.push(`衣装発動: ${ef.stat}+${ef.pct}%` + (ef.needGroup ? `（${ef.needGroup}）` : ''));
+        notes.push(`衣装発動: ${leader.c.name} ${ef.stat}+${ef.pct}%` + (ef.needGroup ? `（${ef.needGroup}）` : ''));
       });
     }
 
     // 全員のパッシブ
     entries.forEach((e, idx) => {
       const effects = parseSkillEffects(e.c.passive_skill);
-      effects.forEach((ef) => {
-        if (!effectIsActive(ef, groupCounts)) return;
+      registerSkill('パッシブ', e, e.c.passive_skill, effects, (ef) => {
         if (ef.applyTo === 'self') applyEffectToMult(selfMult[idx], ef, true);
         else if (ef.applyTo === 'group' && ef.applyGroup) applyEffectToMult(bumpGroup(ef.applyGroup), ef, true);
         else applyEffectToMult(teamMult, ef, true);
+        if (ef.needGroup || ef.pct >= 30) {
+          notes.push(`パッシブ発動: ${e.c.name} ${ef.stat}+${ef.pct}%` + (ef.needGroup ? `（${ef.needGroup}）` : ''));
+        }
       });
     });
 
@@ -359,7 +401,13 @@
       .sort((a, b) => b[1] - a[1])[0];
     if (topTag && topTag[1] >= 2) notes.push(`ユニット寄せ: ${topTag[0]}×${topTag[1]}`);
     if (maxType >= 3) notes.push(`タイプ寄せ: ${Object.entries(typeCount).sort((a,b)=>b[1]-a[1])[0][0]}×${maxType}`);
-    if (scoreSupport > 0) notes.push(`スコアサポート合計 +${Math.round(scoreSupport * 100) / 100}%換算`);
+    if (scoreSupport > 0) notes.push(`スコアサポート合計 +${Math.round(scoreSupport * 1000) / 10}%換算`);
+
+    // 人数カウント表示用
+    const groupSummary = Object.entries(groupCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([g, n]) => `${g}×${n}`)
+      .slice(0, 10);
 
     return {
       sum,
@@ -371,7 +419,9 @@
       typeBonus,
       scoreSupport,
       groupCounts,
+      groupSummary,
       synergyNotes: notes,
+      skillDetails,
       scoreIndex
     };
   }
@@ -737,6 +787,7 @@
         タイプ統一補正：×${est.typeBonus.toFixed(2)}
       </div>
       ${synergyNotesHtml(est)}
+      ${skillsDetailHtml(est)}
       <div class="stat-grid cols4">
         <div class="stat-box"><div class="v">${est.powered.total.toLocaleString()}</div><div class="l">スキル後ステ合計</div></div>
         <div class="stat-box"><div class="v">${est.powered.perf.toLocaleString()}</div><div class="l">Perf反映後</div></div>
@@ -847,39 +898,47 @@
     return [...new Set(pref)];
   }
 
-  function buildTeamAroundLeader(leader, goal) {
+  /** 所持カードから狙えるユニット／タイプタグ一覧 */
+  function ownedSynergyGroups() {
+    const counts = {};
+    owned.forEach((o) => {
+      const c = CARD_MAP[o.cardId];
+      if (!c) return;
+      cardGroups(c).forEach((g) => { counts[g] = (counts[g] || 0) + 1; });
+      preferredGroupsFromCard(c).forEach((g) => { counts[g] = counts[g] || 0; });
+    });
+    return Object.entries(counts)
+      .filter(([, n]) => n >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .map(([g]) => g);
+  }
+
+  function buildTeamAroundLeader(leader, goal, opts) {
+    const preferGroup = (opts && opts.preferGroup) || '';
     const used = new Set([leader.ownedId]);
     const members = [];
     const leaderCard = CARD_MAP[leader.cardId];
     const prefs = preferredGroupsFromCard(leaderCard);
-
-    function currentTeam() {
-      return { leader: leader.ownedId, members: members.concat(Array(5 - members.length).fill(null)).slice(0, 5) };
-    }
+    if (preferGroup && !prefs.includes(preferGroup)) prefs.unshift(preferGroup);
 
     while (members.length < 5) {
       let best = null;
       let bestScore = -Infinity;
       for (const o of owned) {
         if (used.has(o.ownedId)) continue;
-        // タイプ特化時は同タイプを強く優先
-        if (goal === 'happy' || goal === 'pure' || goal === 'cute') {
-          const want = goal === 'happy' ? 'ハッピー' : goal === 'pure' ? 'ピュア' : 'キュート';
-          if (CARD_MAP[o.cardId].type !== want && members.filter((id) => {
-            const x = owned.find((y) => y.ownedId === id);
-            return x && CARD_MAP[x.cardId].type === want;
-          }).length < 4) {
-            // 同タイプが足りないうちは異タイプは大幅減点（完全スキップはしない）
-          }
-        }
         const trialMembers = members.concat([o.ownedId]);
         while (trialMembers.length < 5) trialMembers.push(null);
         const trial = { leader: leader.ownedId, members: trialMembers.slice(0, 5) };
         let s = scoreTeamObj(trial, goal);
-        // リーダー条件タグを満たすカードを少し優遇
         const c = CARD_MAP[o.cardId];
         const gset = cardGroups(c);
-        prefs.forEach((p) => { if (gset.has(p)) s += 15000; });
+        prefs.forEach((p) => { if (gset.has(p)) s += 18000; });
+        // 指定ユニット寄せをさらに強く
+        if (preferGroup && gset.has(preferGroup)) s += 35000;
+        // パッシブ条件を満たしにいくボーナス
+        preferredGroupsFromCard(c).forEach((p) => {
+          if (gset.has(p) || prefs.includes(p)) s += 4000;
+        });
         if (s > bestScore) { bestScore = s; best = o; }
       }
       if (!best) break;
@@ -892,48 +951,131 @@
 
   function buildBestTeam(goal) {
     if (owned.length < 6) return null;
+    const results = collectDiverseTeams(goal, 1);
+    return results.length ? results[0].t : null;
+  }
+
+  /**
+   * 所持内からできるだけ多くの異なる組み合わせを探索
+   * （リーダー差・ユニット寄せ差を広く拾う）
+   */
+  function collectDiverseTeams(goal, limit) {
+    const out = [];
+    const seen = new Set();
+    const lim = Math.max(1, limit || 12);
+
+    function add(t, label) {
+      if (!t || !t.leader) return;
+      const key = [t.leader, ...t.members].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      const est = estimateScore(t);
+      out.push({ label, t, est });
+    }
+
+    if (owned.length < 6) return out;
+
     const ranked = owned.slice().sort((a, b) => scoreOwned(b, goal) - scoreOwned(a, goal));
     const leaders = ranked.slice().sort((a, b) => {
       const ca = CARD_MAP[a.cardId], cb = CARD_MAP[b.cardId];
       const sa = scoreOwned(a, goal) + (ca.costume_skill ? 3000 : 0) + ca.rarity * 150
-        + preferredGroupsFromCard(ca).length * 200;
+        + preferredGroupsFromCard(ca).length * 400;
       const sb = scoreOwned(b, goal) + (cb.costume_skill ? 3000 : 0) + cb.rarity * 150
-        + preferredGroupsFromCard(cb).length * 200;
+        + preferredGroupsFromCard(cb).length * 400;
       return sb - sa;
     });
-    let bestTeam = null;
-    let bestScore = -Infinity;
-    const tryLeaders = leaders.slice(0, Math.min(18, leaders.length));
+
+    // 1) 有力リーダーを広く試す
+    const tryLeaders = leaders.slice(0, Math.min(36, leaders.length));
     for (const leader of tryLeaders) {
-      const t = buildTeamAroundLeader(leader, goal);
-      if (!t) continue;
-      const s = scoreTeamObj(t, goal);
-      if (s > bestScore) { bestScore = s; bestTeam = t; }
+      const name = CARD_MAP[leader.cardId].name;
+      add(buildTeamAroundLeader(leader, goal), `リーダー:${name}`);
     }
-    return bestTeam;
+
+    // 2) 所持で2人以上いるタグごとに寄せ編成
+    for (const g of ownedSynergyGroups().slice(0, 14)) {
+      const gLeaders = leaders.filter((o) => {
+        const c = CARD_MAP[o.cardId];
+        return cardGroups(c).has(g) || preferredGroupsFromCard(c).includes(g);
+      }).slice(0, 6);
+      for (const leader of gLeaders) {
+        add(buildTeamAroundLeader(leader, goal, { preferGroup: g }), `${g}寄せ`);
+      }
+    }
+
+    out.sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
+    return out.slice(0, lim);
   }
 
   function synergyNotesHtml(est) {
-    const notes = (est.synergyNotes || []).slice(0, 8);
-    if (!notes.length) return '<div class="hint">シナジー特記なし（ステータス中心の編成）</div>';
-    return `<div class="hint">シナジー: ${notes.map((n) => esc(n)).join(' ／ ')}</div>`;
+    const notes = (est.synergyNotes || []).slice(0, 14);
+    const groups = (est.groupSummary || []).join(' / ');
+    const head = groups
+      ? `<div class="hint">編成内カウント: ${esc(groups)}</div>`
+      : '';
+    if (!notes.length) {
+      return head + '<div class="hint">シナジー特記なし（ステータス中心の編成）</div>';
+    }
+    return head + `<div class="hint">シナジー: ${notes.map((n) => esc(n)).join(' ／ ')}</div>`;
+  }
+
+  /** 衣装・パッシブ全文と発動／未発動 */
+  function skillsDetailHtml(est) {
+    const details = est.skillDetails || [];
+    if (!details.length) return '';
+    return `<div class="skill-panel">
+      <div class="sec" style="font-size:.85rem;margin-top:10px;">スキル内容（発動判定つき）</div>
+      ${details.map((d) => `
+        <div class="skill-box">
+          <b>${esc(d.role)} ${esc(d.name)}</b>
+          ${d.costume ? `<span class="chip">${esc(d.costume)}</span>` : ''}
+          <div><b>${esc(d.kind)}</b>：${esc(d.text)}</div>
+          ${d.lines.length
+            ? d.lines.map((line) => {
+                const ok = line.startsWith('発動');
+                return `<div style="color:${ok ? 'var(--ok)' : 'var(--warn)'}">${esc(line)}</div>`;
+              }).join('')
+            : '<div>数値効果を文言から抽出できませんでした（表示のみ）</div>'}
+        </div>`).join('')}
+      <div class="hint">※％はカードテキスト準拠の概算です。実機のスコア式・同時発動上限は非公開のため完全一致ではありません。</div>
+    </div>`;
   }
 
   function runAutoTeam() {
     const goal = document.getElementById('autoGoal').value;
-    const t = buildBestTeam(goal);
+    const list = collectDiverseTeams(goal, 8);
     const box = document.getElementById('autoResult');
-    if (!t) {
+    if (!list.length) {
       box.innerHTML = '<div class="warnbox">自動編成には所持カードが6枚以上必要です。</div>';
       return;
     }
-    applyTeam(t);
-    const est = estimateScore(t);
-    box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました。<br>${esc(teamLabel(t))}<br>合計 ${est.sum.total.toLocaleString()} / スコア概算 ${est.scoreIndex.toLocaleString()}</div>
-      ${synergyNotesHtml(est)}
-      <button class="small" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(t))}">比較リストに追加</button>`;
-    toast('シナジー込み自動編成 完了');
+    const best = list[0];
+    applyTeam(best.t);
+    box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました（所持内から複数パターン探索し最上位を採用）。<br>
+      ${esc(teamLabel(best.t))}<br>
+      合計 ${best.est.sum.total.toLocaleString()} / スコア概算 ${best.est.scoreIndex.toLocaleString()}
+      </div>
+      ${synergyNotesHtml(best.est)}
+      ${skillsDetailHtml(best.est)}
+      <div class="hint" style="margin-top:10px;">同じ目標の別候補（上位）</div>
+      ${list.slice(1).map((r, i) => `
+        <div class="candidate">
+          <h4>別候補 #${i + 2} ${esc(r.label)} — ${r.est.scoreIndex.toLocaleString()}</h4>
+          <div class="hint">${esc(teamLabel(r.t))}</div>
+          ${synergyNotesHtml(r.est)}
+          <details>
+            <summary>スキル内容を見る</summary>
+            ${skillsDetailHtml(r.est)}
+          </details>
+          <div class="row">
+            <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
+            <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
+          </div>
+        </div>`).join('')}
+      <button class="small" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(best.t))}">最上位を比較リストに追加</button>`;
+    toast('シナジー込み自動編成 完了（複数候補探索）');
   }
+
   function runCandidates() {
     const goals = [
       ['score', 'スコア（シナジー）'], ['total', '総合力'], ['perf', 'パフォーマンス'], ['tech', 'テクニック'], ['sense', 'センス'],
@@ -941,37 +1083,58 @@
     ];
     const seen = new Set();
     const results = [];
-    for (const [goal, label] of goals) {
-      const t = buildBestTeam(goal);
-      if (!t) continue;
+    function pushUnique(label, t, est) {
+      if (!t) return;
       const key = [t.leader, ...t.members].join('|');
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return;
       seen.add(key);
-      results.push({ label, t, est: estimateScore(t) });
+      results.push({ label, t, est: est || estimateScore(t) });
     }
+
+    for (const [goal, label] of goals) {
+      collectDiverseTeams(goal, 6).forEach((r, idx) => {
+        pushUnique(`${label}${idx ? ` #${idx + 1}` : ''}`, r.t, r.est);
+      });
+    }
+    // 所持タグごとの寄せをさらに足す
+    for (const g of ownedSynergyGroups().slice(0, 12)) {
+      const leaders = owned.filter((o) => cardGroups(CARD_MAP[o.cardId]).has(g))
+        .sort((a, b) => scoreOwned(b, 'score') - scoreOwned(a, 'score'))
+        .slice(0, 10);
+      for (const leader of leaders) {
+        const t = buildTeamAroundLeader(leader, 'score', { preferGroup: g });
+        pushUnique(`${g}寄せ`, t);
+      }
+    }
+
     results.sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
+    const top = results.slice(0, 16);
     const box = document.getElementById('candidateList');
-    if (!results.length) {
+    if (!top.length) {
       box.innerHTML = '<div class="warnbox">候補を作れません。所持を増やしてください。</div>';
       return;
     }
-    box.innerHTML = results.map((r, i) => `
+    box.innerHTML = `<div class="okbox">所持カードから ${top.length} 通りの組み合わせを出しました（重複除去済み）。</div>` + top.map((r, i) => `
       <div class="candidate">
         <h4>#${i + 1} ${esc(r.label)} — スコア概算 ${r.est.scoreIndex.toLocaleString()}</h4>
         <div class="hint">${esc(teamLabel(r.t))}</div>
         ${synergyNotesHtml(r.est)}
         <div class="stat-grid cols4" style="margin:8px 0;">
           <div class="stat-box"><div class="v">${r.est.sum.total.toLocaleString()}</div><div class="l">Total</div></div>
+          <div class="stat-box"><div class="v">${r.est.powered.total.toLocaleString()}</div><div class="l">スキル後</div></div>
           <div class="stat-box"><div class="v">${r.est.sum.perf.toLocaleString()}</div><div class="l">Perf</div></div>
-          <div class="stat-box"><div class="v">${r.est.sum.tech.toLocaleString()}</div><div class="l">Tech</div></div>
           <div class="stat-box"><div class="v">${r.est.sum.sense.toLocaleString()}</div><div class="l">Sense</div></div>
         </div>
+        <details ${i < 3 ? 'open' : ''}>
+          <summary>スキル内容（衣装・パッシブ）</summary>
+          ${skillsDetailHtml(r.est)}
+        </details>
         <div class="row">
           <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
           <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
         </div>
       </div>`).join('');
-    toast(`${results.length}件のシナジー候補を生成`);
+    toast(`${top.length}件のシナジー候補を生成`);
   }
   function saveTeamObjToCompare(t) {
     const copy = { leader: t.leader, members: t.members.slice(), savedAt: Date.now() };

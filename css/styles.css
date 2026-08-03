@@ -92,6 +92,15 @@ textarea{width:100%; min-height:70px; resize:vertical}
 }
 .skill-box b{color:var(--text); font-weight:800}
 .skill-box div{margin:3px 0}
+.skill-panel{margin-top:6px}
+.skill-panel details{margin-top:8px}
+.skill-panel summary{
+  cursor:pointer; color:var(--accent2); font-weight:800; font-size:.78rem;
+}
+.candidate details{margin:8px 0}
+.candidate summary{
+  cursor:pointer; color:var(--accent2); font-weight:700; font-size:.78rem;
+}
 .skill-box.compact{font-size:.68rem}
 details.skill-details{margin-top:6px}
 details.skill-details > summary{
