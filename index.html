@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HOLODORI SIM｜ホロドリ（ホロライブドリームス）非公式 編成シミュレーター</title>
-<meta name="description" content="ホロライブドリームス（ホロドリ）非公式のカード所持管理・自動編成・スキルシナジー概算・ボード登録ツール。データは端末内のみ保存。無料・登録不要。">
+<title>ホロドリ 編成シミュレーター｜HOLODORI SIM（ホロライブドリームス非公式）</title>
+<meta name="description" content="ホロドリ（ホロライブドリームス）非公式の編成シミュレーター。カード所持管理・自動編成・スキルシナジー・楽曲編成・ボード登録に対応。無料・登録不要・データは端末内のみ。">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="googlebot" content="index,follow">
-<meta name="keywords" content="ホロドリ,ホロライブドリームス,編成シミュレーター,カード管理,非公式,hololive Dreams">
+<meta name="keywords" content="ホロドリ,ホロライブドリームス,編成シミュレーター,ホロドリ 編成,ホロドリ シミュレーター,カード編成,自動編成,所持管理,スキルシナジー,非公式,hololive Dreams">
 <meta name="author" content="HOLODORI SIM（非公式ファンツール）">
 <meta name="theme-color" content="#0a1520">
 <meta name="referrer" content="no-referrer">
@@ -15,13 +15,13 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:site_name" content="HOLODORI SIM">
-<meta property="og:title" content="HOLODORI SIM｜ホロドリ非公式 編成シミュレーター">
-<meta property="og:description" content="ホロライブドリームス非公式の所持カード管理・自動編成・ボード登録。データは端末内のみ。無料・登録不要。">
+<meta property="og:title" content="ホロドリ 編成シミュレーター｜HOLODORI SIM">
+<meta property="og:description" content="ホロライブドリームス非公式の編成シミュレーター。所持管理・自動編成・スキルシナジー対応。データは端末内のみ。無料。">
 <meta property="og:url" content="https://haru4238-cmyk.github.io/holodori-sim/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="HOLODORI SIM｜ホロドリ非公式 編成シミュレーター">
-<meta name="twitter:description" content="ホロライブドリームス非公式の所持カード管理・自動編成ツール。データは端末内のみ。">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-wBYlaYM0dBlgubhCCqXBmoqQv49C4GA7RR7RdUQLtYI='; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
+<meta name="twitter:title" content="ホロドリ 編成シミュレーター｜HOLODORI SIM">
+<meta name="twitter:description" content="ホロドリ非公式の編成シミュレーター。所持管理・自動編成・スキルシナジー。データは端末内のみ。">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-aoXYmrU4EGmupVDt0MIcd/Co2GjJVpb7PpWd/dnGuyA='; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -32,13 +32,19 @@
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "HOLODORI SIM",
-  "alternateName": ["ホロドリ シミュレーター", "ホロライブドリームス 編成シミュレーター"],
+  "alternateName": [
+    "ホロドリ 編成シミュレーター",
+    "ホロドリ シミュレーター",
+    "ホロライブドリームス 編成シミュレーター",
+    "ホロドリ カード編成"
+  ],
   "url": "https://haru4238-cmyk.github.io/holodori-sim/",
-  "description": "ホロライブドリームス（ホロドリ）非公式のカード所持管理・編成提案・ボード登録シミュレーター。個人データは端末内のみ保存。",
+  "description": "ホロドリ（ホロライブドリームス）非公式の編成シミュレーター。カード所持管理・自動編成・スキルシナジー・ボード登録。個人データは端末内のみ保存。",
   "applicationCategory": "GameApplication",
   "operatingSystem": "Web Browser",
   "inLanguage": "ja",
   "isAccessibleForFree": true,
+  "keywords": "ホロドリ,編成シミュレーター,ホロライブドリームス,自動編成,カード管理",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
   "creator": { "@type": "Person", "name": "haru4238-cmyk" }
 }
@@ -49,16 +55,16 @@
 <div id="appRoot">
 <header>
   <h1 class="brand">HOLODORI SIM</h1>
-  <p class="tagline">ホロライブドリームス（ホロドリ）非公式カード編成シミュレーター<br>
+  <p class="tagline">ホロドリ（ホロライブドリームス）非公式の<strong>編成シミュレーター</strong><br>
     使い方の順番：①登録 → ②所持確認 → ④編成 / ⑤楽曲（③ボードは任意・みんな登録）<br>
     <span id="dataVersion"></span> · データは各人の端末内のみ（他人と混ざりません）</p>
 </header>
 <section class="panel seo-intro" id="seoIntro" aria-label="このサイトについて">
-  <h2 class="sec">このサイトでできること</h2>
+  <h2 class="sec">ホロドリ編成シミュレーターについて</h2>
   <p class="hint">
-    <strong>ホロドリ（ホロライブドリームス）</strong>向けの非公式ツールです。
-    所持カードの登録、スキルシナジーを考慮した自動編成、楽曲向け編成、ホロメンボードの任意登録ができます。
-    アカウント登録は不要で、データはあなたの端末のブラウザ内だけに保存されます（サーバへ送りません）。
+    <strong>ホロドリ（ホロライブドリームス）の編成シミュレーター</strong>・カード管理ツール（非公式）です。
+    所持カード登録、スキルシナジーを考慮した<strong>自動編成</strong>、楽曲向け編成、ホロメンボードの任意登録ができます。
+    「ホロドリ 編成」「カード編成シミュレーター」として無料で使えます。アカウント登録は不要で、データは端末のブラウザ内だけに保存されます（サーバへ送りません）。
     COVER / QualiArts 非公認のファンサイトです。
   </p>
 </section>
@@ -123,7 +129,7 @@
 <section id="tab-team" class="tabpage" style="display:none;">
   <div class="panel">
     <h2 class="sec">④ 編成シミュレーター</h2>
-    <p class="hint">リーダー1 + メンバー5。同名ホロメンのかぶりOK（同じ所持カードの二重使用は不可）。</p>
+    <p class="hint">ホロドリのカード編成をシミュレーションできます。リーダー1 + メンバー5。同名ホロメンのかぶりOK（同じ所持カードの二重使用は不可）。</p>
     <div class="mode-tabs" id="teamModes">
       <button class="on" type="button" data-mode="manual">手動で選ぶ</button>
       <button type="button" data-mode="auto">自動で選ぶ</button>

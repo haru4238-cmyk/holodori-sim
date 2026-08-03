@@ -1,7 +1,7 @@
 {
-  "name": "HOLODORI SIM",
-  "short_name": "HolodoriSim",
-  "description": "ホロライブドリームス非公式のカード編成シミュレーター",
+  "name": "ホロドリ編成シミュレーター｜HOLODORI SIM",
+  "short_name": "ホロドリ編成",
+  "description": "ホロドリ（ホロライブドリームス）非公式の編成シミュレーター・カード所持管理",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

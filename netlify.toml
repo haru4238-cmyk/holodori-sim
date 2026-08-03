@@ -5,7 +5,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "no-referrer"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-wBYlaYM0dBlgubhCCqXBmoqQv49C4GA7RR7RdUQLtYI='; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-aoXYmrU4EGmupVDt0MIcd/Co2GjJVpb7PpWd/dnGuyA='; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests"
 
 [[headers]]
   for = "/app_data.json"
