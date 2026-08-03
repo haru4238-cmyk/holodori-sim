@@ -1082,12 +1082,17 @@
     return head + `<div class="hint">シナジー: ${notes.map((n) => esc(n)).join(' ／ ')}</div>`;
   }
 
-  /** 衣装・パッシブ全文と発動／未発動（常時表示） */
-  function skillsDetailHtml(est) {
+  /**
+   * 衣装・パッシブ全文と発動／未発動
+   * @param open 最初から開くか（閉じることもできる）
+   */
+  function skillsDetailHtml(est, open) {
     const details = est.skillDetails || [];
     if (!details.length) return '';
-    return `<div class="skill-panel">
-      <div class="sec" style="font-size:.85rem;margin-top:10px;">スキル内容（衣装・パッシブ／発動判定つき）</div>
+    const isOpen = open !== false;
+    return `<details class="skill-details" ${isOpen ? 'open' : ''}>
+      <summary>スキル内容（衣装・パッシブ）を${isOpen ? '閉じる／開く' : '見る'}（タップで切り替え）</summary>
+      <div class="skill-panel">
       ${details.map((d) => `
         <div class="skill-box ${d.kind === '衣装' ? 'skill-costume' : 'skill-passive'}">
           <b>${esc(d.role)} ${esc(d.name)}</b>
@@ -1101,11 +1106,14 @@
             : '<div>数値効果を文言から抽出できませんでした（表示のみ）</div>'}
         </div>`).join('')}
       <div class="hint">※％はカードテキスト準拠の概算です。実機のスコア式・同時発動上限は非公開のため完全一致ではありません。</div>
-    </div>`;
+      </div>
+    </details>`;
   }
 
   function candidateCardHtml(r, i) {
     const title = formatMergedLabels(r.labels || [r.label]);
+    // 上位3件は最初から開く。それ以外は閉じておく（一覧を見やすく）
+    const skillOpen = i < 3;
     return `<div class="candidate">
         <h4>#${i + 1} ${esc(title)} — スコア概算 ${r.est.scoreIndex.toLocaleString()}</h4>
         ${teamRosterHtml(r.t)}
@@ -1116,7 +1124,7 @@
           <div class="stat-box"><div class="v">${r.est.sum.perf.toLocaleString()}</div><div class="l">Perf</div></div>
           <div class="stat-box"><div class="v">${r.est.sum.sense.toLocaleString()}</div><div class="l">Sense</div></div>
         </div>
-        ${skillsDetailHtml(r.est)}
+        ${skillsDetailHtml(r.est, skillOpen)}
         <div class="row">
           <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
           <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>

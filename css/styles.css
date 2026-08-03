@@ -97,6 +97,28 @@ textarea{width:100%; min-height:70px; resize:vertical}
 .skill-on{color:var(--ok)!important}
 .skill-off{color:var(--warn)!important}
 .skill-panel{margin-top:6px}
+details.skill-details{
+  margin-top:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(10,21,32,.28);
+  padding:4px 10px 10px;
+}
+details.skill-details > summary{
+  cursor:pointer;
+  color:var(--accent2);
+  font-weight:800;
+  font-size:.78rem;
+  padding:8px 2px;
+  list-style:none;
+  user-select:none;
+}
+details.skill-details > summary::-webkit-details-marker{display:none}
+details.skill-details > summary::before{
+  content:"▼ ";
+  font-size:.7rem;
+}
+details.skill-details:not([open]) > summary::before{content:"▶ "}
 .roster{margin:8px 0; line-height:1.7}
 .roster-leader{
   margin-bottom:8px;

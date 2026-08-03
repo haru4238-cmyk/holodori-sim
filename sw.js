@@ -1,5 +1,5 @@
 /* 同一オリジンのみ。HTML/CSS/JSはネット優先（更新がすぐ届く） */
-const CACHE = 'holodori-sim-v9';
+const CACHE = 'holodori-sim-v10';
 const ASSETS = [
   './',
   './index.html',
