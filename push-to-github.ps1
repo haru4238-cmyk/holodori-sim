@@ -8,14 +8,14 @@
 $ErrorActionPreference = "Stop"
 
 # ===== ここだけ書き換える =====
-$GitHubUser = "あなたのユーザー名"   # 例: haru4
+$GitHubUser = "haru4238-cmyk"   # Git の user.name から推定。違う場合は書き換えてください
 $RepoName   = "holodori-sim"
 # ============================
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
-if ($GitHubUser -eq "あなたのユーザー名") {
+if ($GitHubUser -eq "あなたのユーザー名" -or [string]::IsNullOrWhiteSpace($GitHubUser)) {
     Write-Host "エラー: スクリプト内の `$GitHubUser を GitHub のユーザー名に書き換えてください。" -ForegroundColor Red
     exit 1
 }
