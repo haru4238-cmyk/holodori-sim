@@ -3,7 +3,7 @@
   "type": "static-website",
   "purpose": "ホロライブドリームス非公式の所持管理・編成・ボード・楽曲向け提案サイト",
   "platform": "GitHub Pages / Netlify / Vercel / ローカル http.server / file://",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "files": {
     "index.html": "サイト入口",
     "app_data.json": "カード・楽曲・開花仕様のマスターJSON",
