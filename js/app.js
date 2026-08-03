@@ -1043,15 +1043,20 @@
 
   function runAutoTeam() {
     const goal = document.getElementById('autoGoal').value;
-    const list = collectDiverseTeams(goal, 8);
     const box = document.getElementById('autoResult');
-    if (!list.length) {
-      box.innerHTML = '<div class="warnbox">自動編成には所持カードが6枚以上必要です。</div>';
-      return;
-    }
-    const best = list[0];
-    applyTeam(best.t);
-    box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました（所持内から複数パターン探索し最上位を採用）。<br>
+    box.innerHTML = '<div class="hint">所持カードの組み合わせを探索中…（少し待つことがあります）</div>';
+    toast('自動編成を探索中…');
+    // UIを先に描画してから重い探索（固まり軽減）
+    setTimeout(() => {
+      try {
+        const list = collectDiverseTeams(goal, 8);
+        if (!list.length) {
+          box.innerHTML = '<div class="warnbox">自動編成には所持カードが6枚以上必要です。</div>';
+          return;
+        }
+        const best = list[0];
+        applyTeam(best.t);
+        box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました（所持内から複数パターン探索し最上位を採用）。<br>
       ${esc(teamLabel(best.t))}<br>
       合計 ${best.est.sum.total.toLocaleString()} / スコア概算 ${best.est.scoreIndex.toLocaleString()}
       </div>
@@ -1073,48 +1078,57 @@
           </div>
         </div>`).join('')}
       <button class="small" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(best.t))}">最上位を比較リストに追加</button>`;
-    toast('シナジー込み自動編成 完了（複数候補探索）');
+        toast('シナジー込み自動編成 完了（複数候補探索）');
+      } catch (err) {
+        console.error(err);
+        box.innerHTML = `<div class="warnbox">自動編成に失敗しました: ${esc(err.message)}</div>`;
+        toast('自動編成に失敗');
+      }
+    }, 30);
   }
 
   function runCandidates() {
-    const goals = [
-      ['score', 'スコア（シナジー）'], ['total', '総合力'], ['perf', 'パフォーマンス'], ['tech', 'テクニック'], ['sense', 'センス'],
-      ['happy', 'ハッピー寄せ'], ['pure', 'ピュア寄せ'], ['cute', 'キュート寄せ']
-    ];
-    const seen = new Set();
-    const results = [];
-    function pushUnique(label, t, est) {
-      if (!t) return;
-      const key = [t.leader, ...t.members].join('|');
-      if (seen.has(key)) return;
-      seen.add(key);
-      results.push({ label, t, est: est || estimateScore(t) });
-    }
-
-    for (const [goal, label] of goals) {
-      collectDiverseTeams(goal, 6).forEach((r, idx) => {
-        pushUnique(`${label}${idx ? ` #${idx + 1}` : ''}`, r.t, r.est);
-      });
-    }
-    // 所持タグごとの寄せをさらに足す
-    for (const g of ownedSynergyGroups().slice(0, 12)) {
-      const leaders = owned.filter((o) => cardGroups(CARD_MAP[o.cardId]).has(g))
-        .sort((a, b) => scoreOwned(b, 'score') - scoreOwned(a, 'score'))
-        .slice(0, 10);
-      for (const leader of leaders) {
-        const t = buildTeamAroundLeader(leader, 'score', { preferGroup: g });
-        pushUnique(`${g}寄せ`, t);
-      }
-    }
-
-    results.sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
-    const top = results.slice(0, 16);
     const box = document.getElementById('candidateList');
-    if (!top.length) {
-      box.innerHTML = '<div class="warnbox">候補を作れません。所持を増やしてください。</div>';
-      return;
-    }
-    box.innerHTML = `<div class="okbox">所持カードから ${top.length} 通りの組み合わせを出しました（重複除去済み）。</div>` + top.map((r, i) => `
+    box.innerHTML = '<div class="hint">候補をたくさん生成中…（所持が多いと数秒かかることがあります）</div>';
+    toast('候補を生成中…');
+    setTimeout(() => {
+      try {
+        const goals = [
+          ['score', 'スコア（シナジー）'], ['total', '総合力'], ['perf', 'パフォーマンス'], ['tech', 'テクニック'], ['sense', 'センス'],
+          ['happy', 'ハッピー寄せ'], ['pure', 'ピュア寄せ'], ['cute', 'キュート寄せ']
+        ];
+        const seen = new Set();
+        const results = [];
+        function pushUnique(label, t, est) {
+          if (!t) return;
+          const key = [t.leader, ...t.members].join('|');
+          if (seen.has(key)) return;
+          seen.add(key);
+          results.push({ label, t, est: est || estimateScore(t) });
+        }
+
+        for (const [goal, label] of goals) {
+          collectDiverseTeams(goal, 6).forEach((r, idx) => {
+            pushUnique(`${label}${idx ? ` #${idx + 1}` : ''}`, r.t, r.est);
+          });
+        }
+        for (const g of ownedSynergyGroups().slice(0, 12)) {
+          const leaders = owned.filter((o) => cardGroups(CARD_MAP[o.cardId]).has(g))
+            .sort((a, b) => scoreOwned(b, 'score') - scoreOwned(a, 'score'))
+            .slice(0, 10);
+          for (const leader of leaders) {
+            const t = buildTeamAroundLeader(leader, 'score', { preferGroup: g });
+            pushUnique(`${g}寄せ`, t);
+          }
+        }
+
+        results.sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
+        const top = results.slice(0, 16);
+        if (!top.length) {
+          box.innerHTML = '<div class="warnbox">候補を作れません。所持を増やしてください。</div>';
+          return;
+        }
+        box.innerHTML = `<div class="okbox">所持カードから ${top.length} 通りの組み合わせを出しました（重複除去済み）。</div>` + top.map((r, i) => `
       <div class="candidate">
         <h4>#${i + 1} ${esc(r.label)} — スコア概算 ${r.est.scoreIndex.toLocaleString()}</h4>
         <div class="hint">${esc(teamLabel(r.t))}</div>
@@ -1134,7 +1148,13 @@
           <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
         </div>
       </div>`).join('');
-    toast(`${top.length}件のシナジー候補を生成`);
+        toast(`${top.length}件のシナジー候補を生成`);
+      } catch (err) {
+        console.error(err);
+        box.innerHTML = `<div class="warnbox">候補生成に失敗しました: ${esc(err.message)}</div>`;
+        toast('候補生成に失敗');
+      }
+    }, 30);
   }
   function saveTeamObjToCompare(t) {
     const copy = { leader: t.leader, members: t.members.slice(), savedAt: Date.now() };
@@ -1194,23 +1214,15 @@
     if (song.focusType === 'ハッピー') goal = 'happy';
     if (song.focusType === 'ピュア') goal = 'pure';
     if (song.focusType === 'キュート') goal = 'cute';
-    // 関連メンバーがいればリーダー優先
+    // 関連メンバーがいればそのメンバーをリーダーにしてシナジー込みで組む
     let t = buildBestTeam(goal);
     if (song.member && owned.length >= 6) {
       const leaderCand = owned
         .filter((o) => CARD_MAP[o.cardId].name === song.member)
         .sort((a, b) => scoreOwned(b, goal) - scoreOwned(a, goal))[0];
       if (leaderCand) {
-        const ranked = owned.slice().sort((a, b) => scoreOwned(b, goal) - scoreOwned(a, goal));
-        const usedIds = new Set([leaderCand.ownedId]);
-        const members = [];
-        for (const o of ranked) {
-          if (usedIds.has(o.ownedId)) continue;
-          usedIds.add(o.ownedId);
-          members.push(o.ownedId);
-          if (members.length === 5) break;
-        }
-        if (members.length === 5) t = { leader: leaderCand.ownedId, members };
+        const syn = buildTeamAroundLeader(leaderCand, goal);
+        if (syn) t = syn;
       }
     }
     const out = document.getElementById('songResult');
@@ -1220,7 +1232,9 @@
     }
     applyTeam(t);
     const est = estimateScore(t);
-    out.innerHTML = `<div class="okbox">「${esc(song.name)}」向け編成を適用しました。<br>${esc(teamLabel(t))}<br>スコア概算 ${est.scoreIndex.toLocaleString()}</div>`;
+    out.innerHTML = `<div class="okbox">「${esc(song.name)}」向け編成を適用しました。<br>${esc(teamLabel(t))}<br>スコア概算 ${est.scoreIndex.toLocaleString()}</div>
+      ${synergyNotesHtml(est)}
+      ${skillsDetailHtml(est)}`;
     toast('曲向け編成を適用');
     showTab('team');
   }
@@ -1496,6 +1510,9 @@
       settings.bloom2 = clampNum(data.settings.bloom2, 0, 50);
       settings.bloom5 = clampNum(data.settings.bloom5, 0, 50);
       settings.levelRef = clampNum(data.settings.levelRef, 40, 120);
+      if (typeof data.settings.useLocalImages === 'boolean') {
+        settings.useLocalImages = data.settings.useLocalImages;
+      }
     }
     compareList = Array.isArray(data.compareList) ? data.compareList.slice(0, 3).map(validateTeamObj) : [];
     saveJSON(LS.owned, owned);

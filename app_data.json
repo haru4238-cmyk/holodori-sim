@@ -332,7 +332,7 @@
    "type": "キュート",
    "tag": "Advent",
    "stats": {
-    "total": 25860,
+    "total": 25865,
     "perf": 7682,
     "tech": 11380,
     "sense": 6803
@@ -2668,7 +2668,7 @@
    "type": "ハッピー",
    "tag": "Myth",
    "stats": {
-    "total": 17725,
+    "total": 17723,
     "perf": 7090,
     "tech": 5424,
     "sense": 5209
@@ -2758,7 +2758,7 @@
    "type": "ハッピー",
    "tag": "holoX",
    "stats": {
-    "total": 17762,
+    "total": 17792,
     "perf": 5311,
     "tech": 6957,
     "sense": 5524
@@ -3226,7 +3226,7 @@
    "type": "ピュア",
    "tag": "holoX",
    "stats": {
-    "total": 17762,
+    "total": 17792,
     "perf": 5311,
     "tech": 6957,
     "sense": 5524
