@@ -51,6 +51,8 @@ main{max-width:980px; margin:0 auto; padding:16px 14px 80px}
 }
 .sec{margin:0 0 10px; font-size:1rem; font-weight:900}
 .hint{color:var(--muted); font-size:.78rem; line-height:1.65; margin:0 0 12px}
+.seo-intro{margin-top:8px}
+.seo-intro strong{color:var(--text); font-weight:800}
 .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
 input[type=text],input[type=number],select,textarea{
   background:var(--panel2); border:1px solid var(--line); color:var(--text);

@@ -3,26 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HOLODORI SIM｜ホロドリ編成シミュレーター</title>
-<meta name="description" content="ホロライブドリームス非公式の所持カード管理・編成提案・ボード管理シミュレーター。データは端末内のみ保存。">
+<title>HOLODORI SIM｜ホロドリ（ホロライブドリームス）非公式 編成シミュレーター</title>
+<meta name="description" content="ホロライブドリームス（ホロドリ）非公式のカード所持管理・自動編成・スキルシナジー概算・ボード登録ツール。データは端末内のみ保存。無料・登録不要。">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="googlebot" content="index,follow">
+<meta name="keywords" content="ホロドリ,ホロライブドリームス,編成シミュレーター,カード管理,非公式,hololive Dreams">
+<meta name="author" content="HOLODORI SIM（非公式ファンツール）">
 <meta name="theme-color" content="#0a1520">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
+<link rel="canonical" href="https://haru4238-cmyk.github.io/holodori-sim/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:site_name" content="HOLODORI SIM">
+<meta property="og:title" content="HOLODORI SIM｜ホロドリ非公式 編成シミュレーター">
+<meta property="og:description" content="ホロライブドリームス非公式の所持カード管理・自動編成・ボード登録。データは端末内のみ。無料・登録不要。">
+<meta property="og:url" content="https://haru4238-cmyk.github.io/holodori-sim/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HOLODORI SIM｜ホロドリ非公式 編成シミュレーター">
+<meta name="twitter:description" content="ホロライブドリームス非公式の所持カード管理・自動編成ツール。データは端末内のみ。">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' 'sha256-wBYlaYM0dBlgubhCCqXBmoqQv49C4GA7RR7RdUQLtYI='; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <link rel="stylesheet" href="css/styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "HOLODORI SIM",
+  "alternateName": ["ホロドリ シミュレーター", "ホロライブドリームス 編成シミュレーター"],
+  "url": "https://haru4238-cmyk.github.io/holodori-sim/",
+  "description": "ホロライブドリームス（ホロドリ）非公式のカード所持管理・編成提案・ボード登録シミュレーター。個人データは端末内のみ保存。",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Web Browser",
+  "inLanguage": "ja",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" },
+  "creator": { "@type": "Person", "name": "haru4238-cmyk" }
+}
+</script>
 </head>
 <body>
-<div id="bootError" class="panel warnbox"></div>
-<div id="appRoot" hidden>
+<div id="bootError" class="panel warnbox" hidden></div>
+<div id="appRoot">
 <header>
   <h1 class="brand">HOLODORI SIM</h1>
-  <p class="tagline">非公式カード編成シミュレーター<br>
+  <p class="tagline">ホロライブドリームス（ホロドリ）非公式カード編成シミュレーター<br>
     使い方の順番：①登録 → ②所持確認 → ④編成 / ⑤楽曲（③ボードは任意・みんな登録）<br>
     <span id="dataVersion"></span> · データは各人の端末内のみ（他人と混ざりません）</p>
 </header>
+<section class="panel seo-intro" id="seoIntro" aria-label="このサイトについて">
+  <h2 class="sec">このサイトでできること</h2>
+  <p class="hint">
+    <strong>ホロドリ（ホロライブドリームス）</strong>向けの非公式ツールです。
+    所持カードの登録、スキルシナジーを考慮した自動編成、楽曲向け編成、ホロメンボードの任意登録ができます。
+    アカウント登録は不要で、データはあなたの端末のブラウザ内だけに保存されます（サーバへ送りません）。
+    COVER / QualiArts 非公認のファンサイトです。
+  </p>
+</section>
 <nav>
   <button class="tab-btn active" type="button" data-tab="add">①登録</button>
   <button class="tab-btn" type="button" data-tab="mine">②所持</button>

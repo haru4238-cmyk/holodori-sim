@@ -1,5 +1,5 @@
 /* 同一オリジンのみキャッシュ。外部通信なし */
-const CACHE = 'holodori-sim-v3';
+const CACHE = 'holodori-sim-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -10,7 +10,9 @@ const ASSETS = [
   './manifest.webmanifest',
   './icons/icon.svg',
   './design.html',
-  './design.json'
+  './design.json',
+  './robots.txt',
+  './sitemap.xml'
 ];
 
 self.addEventListener('install', (event) => {

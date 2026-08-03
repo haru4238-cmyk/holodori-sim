@@ -1619,8 +1619,11 @@
       }
       compareList = (loadJSON(LS.compare, []) || []).slice(0, 3);
 
+      // 検索エンジン向けに最初から本文を出しておく（失敗時だけ隠す）
       document.getElementById('appRoot').hidden = false;
-      document.getElementById('bootError').style.display = 'none';
+      const bootError = document.getElementById('bootError');
+      bootError.hidden = true;
+      bootError.style.display = 'none';
       document.getElementById('dataVersion').textContent = `v${APP.version} / ${APP.updated}`;
 
       document.body.addEventListener('click', onClick);
@@ -1711,8 +1714,11 @@
       });
     } catch (err) {
       console.error(err);
-      document.getElementById('bootError').style.display = 'block';
-      document.getElementById('bootError').textContent =
+      document.getElementById('appRoot').hidden = true;
+      const bootError = document.getElementById('bootError');
+      bootError.hidden = false;
+      bootError.style.display = 'block';
+      bootError.textContent =
         'データの読み込みに失敗しました。app_data.json と同じ場所に index.html があるか確認してください。\n' + err.message;
     }
   }
