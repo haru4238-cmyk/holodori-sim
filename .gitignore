@@ -1,0 +1,26 @@
+# 公開サイトに不要 / 秘密になりうるもの
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+.vscode/
+.idea/
+
+# ローカル作業用スクレイプ中間物（公開リポジトリに載せない）
+tools/__pycache__/
+tools/scraped_batch_*.json
+tools/batch_*.json
+tools/skills_batch_*.json
+tools/scrape_report.json
+tools/*.csv
+__pycache__/
+*.pyc
+
+# カード画像は著作権のため公開リポジトリに含めない（README.txt 以外）
+images/*
+!images/README.txt
+
+# 公開用の生成物（必要なら都度作り直し）
+_publish/
+holodori-sim-publish.zip

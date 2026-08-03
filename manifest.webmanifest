@@ -1,0 +1,19 @@
+{
+  "name": "HOLODORI SIM",
+  "short_name": "HolodoriSim",
+  "description": "ホロライブドリームス非公式のカード編成シミュレーター",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1520",
+  "theme_color": "#0a1520",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
