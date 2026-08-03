@@ -98,17 +98,28 @@ textarea{width:100%; min-height:70px; resize:vertical}
 .skill-off{color:var(--warn)!important}
 .skill-panel{margin-top:6px}
 .roster{margin:8px 0; line-height:1.7}
-.roster-leader{margin-bottom:4px}
+.roster-leader{
+  margin-bottom:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:linear-gradient(90deg, rgba(244,211,94,.28), rgba(255,107,107,.12));
+  border:1px solid rgba(244,211,94,.65);
+}
+.roster-members{
+  padding:6px 10px;
+  border-radius:10px;
+  background:rgba(10,21,32,.35);
+  border:1px solid var(--line);
+}
 .leader-tag,.member-tag{
-  display:inline-block; font-size:.65rem; font-weight:900; padding:2px 8px;
+  display:inline-block; font-size:.68rem; font-weight:900; padding:3px 10px;
   border-radius:999px; margin-right:8px; vertical-align:middle;
 }
-.leader-tag{background:var(--gold); color:#3a2c00}
+.leader-tag{background:#f4d35e; color:#3a2c00}
 .member-tag{background:#35556a; color:#dff}
 .leader-name{
-  font-weight:900; font-size:.95rem;
-  color:var(--gold);
-  text-shadow:0 0 18px rgba(244,211,94,.25);
+  font-weight:900; font-size:1.05rem;
+  color:#f4d35e !important;
 }
 .member-name{color:var(--text); font-weight:700; font-size:.82rem}
 .roster .sep{color:var(--muted); font-weight:400}

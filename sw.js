@@ -1,5 +1,5 @@
-/* 同一オリジンのみキャッシュ。外部通信なし */
-const CACHE = 'holodori-sim-v8';
+/* 同一オリジンのみ。HTML/CSS/JSはネット優先（更新がすぐ届く） */
+const CACHE = 'holodori-sim-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -34,6 +34,29 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // HTML / CSS / JS はネット優先（古いキャッシュで色分け等が消えるのを防ぐ）
+  const path = url.pathname;
+  const networkFirst =
+    path.endsWith('.html') ||
+    path.endsWith('.css') ||
+    path.endsWith('.js') ||
+    path.endsWith('/') ||
+    path.endsWith('/holodori-sim');
+
+  if (networkFirst) {
+    event.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.ok && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const fetched = fetch(req).then((res) => {

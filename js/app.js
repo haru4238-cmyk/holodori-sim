@@ -876,7 +876,7 @@
       return o ? CARD_MAP[o.cardId].name : '？';
     });
     return `<div class="roster">
-      <div class="roster-leader"><span class="leader-tag">リーダー</span><span class="leader-name">${esc(leaderName)}</span></div>
+      <div class="roster-leader"><span class="leader-tag">★リーダー</span><span class="leader-name">${esc(leaderName)}</span></div>
       <div class="roster-members"><span class="member-tag">メンバー</span>${members.map((n) => `<span class="member-name">${esc(n)}</span>`).join('<span class="sep"> / </span>')}</div>
     </div>`;
   }
