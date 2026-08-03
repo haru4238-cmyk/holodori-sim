@@ -847,6 +847,69 @@
       return o ? CARD_MAP[o.cardId].name : '?';
     }).join(' / ');
   }
+  /** リーダー＋メンバー集合が同じなら同一編成（メンバー順の違いは無視） */
+  function teamFingerprint(teamObj) {
+    const leader = teamObj.leader || '';
+    const members = (teamObj.members || []).filter(Boolean).slice().sort().join(',');
+    return `${leader}|${members}`;
+  }
+  function cleanCandidateLabel(label) {
+    return String(label || '').replace(/\s*#\d+\s*$/, '').trim();
+  }
+  function formatMergedLabels(labels) {
+    const uniq = [];
+    (labels || []).forEach((lb) => {
+      const c = cleanCandidateLabel(lb);
+      if (c && !uniq.includes(c)) uniq.push(c);
+    });
+    if (!uniq.length) return '候補';
+    if (uniq.length === 1) return uniq[0];
+    if (uniq.length === 2) return `${uniq[0]} ＋ ${uniq[1]}（同率）`;
+    return `${uniq.join(' ＋ ')}（同率）`;
+  }
+  /** リーダーを色分けして表示 */
+  function teamRosterHtml(teamObj) {
+    const leaderO = owned.find((x) => x.ownedId === teamObj.leader);
+    const leaderName = leaderO ? CARD_MAP[leaderO.cardId].name : '？';
+    const members = (teamObj.members || []).filter(Boolean).map((id) => {
+      const o = owned.find((x) => x.ownedId === id);
+      return o ? CARD_MAP[o.cardId].name : '？';
+    });
+    return `<div class="roster">
+      <div class="roster-leader"><span class="leader-tag">リーダー</span><span class="leader-name">${esc(leaderName)}</span></div>
+      <div class="roster-members"><span class="member-tag">メンバー</span>${members.map((n) => `<span class="member-name">${esc(n)}</span>`).join('<span class="sep"> / </span>')}</div>
+    </div>`;
+  }
+  /** 候補リストを同一編成でマージ */
+  function mergeCandidateRows(rows) {
+    const map = new Map();
+    rows.forEach((r) => {
+      if (!r || !r.t) return;
+      const key = teamFingerprint(r.t);
+      if (map.has(key)) {
+        const cur = map.get(key);
+        const lb = cleanCandidateLabel(r.label || (r.labels && r.labels[0]) || '');
+        if (lb && !cur.labels.includes(lb)) cur.labels.push(lb);
+      } else {
+        const labels = [];
+        if (Array.isArray(r.labels)) r.labels.forEach((x) => {
+          const c = cleanCandidateLabel(x);
+          if (c && !labels.includes(c)) labels.push(c);
+        });
+        else {
+          const c = cleanCandidateLabel(r.label || '');
+          if (c) labels.push(c);
+        }
+        map.set(key, {
+          labels,
+          t: r.t,
+          est: r.est || estimateScore(r.t),
+          key
+        });
+      }
+    });
+    return [...map.values()].sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
+  }
   function scoreOwned(o, goal) {
     const st = calcOwnedStats(o, 'any');
     if (!st) return -1;
@@ -966,7 +1029,7 @@
 
     function add(t, label) {
       if (!t || !t.leader) return;
-      const key = [t.leader, ...t.members].join('|');
+      const key = teamFingerprint(t);
       if (seen.has(key)) return;
       seen.add(key);
       const est = estimateScore(t);
@@ -1019,21 +1082,21 @@
     return head + `<div class="hint">シナジー: ${notes.map((n) => esc(n)).join(' ／ ')}</div>`;
   }
 
-  /** 衣装・パッシブ全文と発動／未発動 */
+  /** 衣装・パッシブ全文と発動／未発動（常時表示） */
   function skillsDetailHtml(est) {
     const details = est.skillDetails || [];
     if (!details.length) return '';
     return `<div class="skill-panel">
-      <div class="sec" style="font-size:.85rem;margin-top:10px;">スキル内容（発動判定つき）</div>
+      <div class="sec" style="font-size:.85rem;margin-top:10px;">スキル内容（衣装・パッシブ／発動判定つき）</div>
       ${details.map((d) => `
-        <div class="skill-box">
+        <div class="skill-box ${d.kind === '衣装' ? 'skill-costume' : 'skill-passive'}">
           <b>${esc(d.role)} ${esc(d.name)}</b>
           ${d.costume ? `<span class="chip">${esc(d.costume)}</span>` : ''}
           <div><b>${esc(d.kind)}</b>：${esc(d.text)}</div>
           ${d.lines.length
             ? d.lines.map((line) => {
                 const ok = line.startsWith('発動');
-                return `<div style="color:${ok ? 'var(--ok)' : 'var(--warn)'}">${esc(line)}</div>`;
+                return `<div class="${ok ? 'skill-on' : 'skill-off'}">${esc(line)}</div>`;
               }).join('')
             : '<div>数値効果を文言から抽出できませんでした（表示のみ）</div>'}
         </div>`).join('')}
@@ -1041,44 +1104,50 @@
     </div>`;
   }
 
+  function candidateCardHtml(r, i) {
+    const title = formatMergedLabels(r.labels || [r.label]);
+    return `<div class="candidate">
+        <h4>#${i + 1} ${esc(title)} — スコア概算 ${r.est.scoreIndex.toLocaleString()}</h4>
+        ${teamRosterHtml(r.t)}
+        ${synergyNotesHtml(r.est)}
+        <div class="stat-grid cols4" style="margin:8px 0;">
+          <div class="stat-box"><div class="v">${r.est.sum.total.toLocaleString()}</div><div class="l">総合力 Total</div></div>
+          <div class="stat-box"><div class="v">${r.est.powered.total.toLocaleString()}</div><div class="l">スキル後</div></div>
+          <div class="stat-box"><div class="v">${r.est.sum.perf.toLocaleString()}</div><div class="l">Perf</div></div>
+          <div class="stat-box"><div class="v">${r.est.sum.sense.toLocaleString()}</div><div class="l">Sense</div></div>
+        </div>
+        ${skillsDetailHtml(r.est)}
+        <div class="row">
+          <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
+          <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
+        </div>
+      </div>`;
+  }
+
   function runAutoTeam() {
     const goal = document.getElementById('autoGoal').value;
     const box = document.getElementById('autoResult');
     box.innerHTML = '<div class="hint">所持カードの組み合わせを探索中…（少し待つことがあります）</div>';
     toast('自動編成を探索中…');
-    // UIを先に描画してから重い探索（固まり軽減）
     setTimeout(() => {
       try {
-        const list = collectDiverseTeams(goal, 8);
+        const list = mergeCandidateRows(collectDiverseTeams(goal, 12));
         if (!list.length) {
           box.innerHTML = '<div class="warnbox">自動編成には所持カードが6枚以上必要です。</div>';
           return;
         }
         const best = list[0];
         applyTeam(best.t);
-        box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました（所持内から複数パターン探索し最上位を採用）。<br>
-      ${esc(teamLabel(best.t))}<br>
+        box.innerHTML = `<div class="okbox">スキルシナジー込みで自動編成しました。<br>
       合計 ${best.est.sum.total.toLocaleString()} / スコア概算 ${best.est.scoreIndex.toLocaleString()}
       </div>
+      ${teamRosterHtml(best.t)}
       ${synergyNotesHtml(best.est)}
       ${skillsDetailHtml(best.est)}
-      <div class="hint" style="margin-top:10px;">同じ目標の別候補（上位）</div>
-      ${list.slice(1).map((r, i) => `
-        <div class="candidate">
-          <h4>別候補 #${i + 2} ${esc(r.label)} — ${r.est.scoreIndex.toLocaleString()}</h4>
-          <div class="hint">${esc(teamLabel(r.t))}</div>
-          ${synergyNotesHtml(r.est)}
-          <details>
-            <summary>スキル内容を見る</summary>
-            ${skillsDetailHtml(r.est)}
-          </details>
-          <div class="row">
-            <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
-            <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
-          </div>
-        </div>`).join('')}
+      <div class="hint" style="margin-top:10px;">同じ目標の別候補（上位・重複まとめ済み）</div>
+      ${list.slice(1).map((r, i) => candidateCardHtml(r, i + 1)).join('')}
       <button class="small" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(best.t))}">最上位を比較リストに追加</button>`;
-        toast('シナジー込み自動編成 完了（複数候補探索）');
+        toast('シナジー込み自動編成 完了');
       } catch (err) {
         console.error(err);
         box.innerHTML = `<div class="warnbox">自動編成に失敗しました: ${esc(err.message)}</div>`;
@@ -1097,19 +1166,10 @@
           ['score', 'スコア（シナジー）'], ['total', '総合力'], ['perf', 'パフォーマンス'], ['tech', 'テクニック'], ['sense', 'センス'],
           ['happy', 'ハッピー寄せ'], ['pure', 'ピュア寄せ'], ['cute', 'キュート寄せ']
         ];
-        const seen = new Set();
-        const results = [];
-        function pushUnique(label, t, est) {
-          if (!t) return;
-          const key = [t.leader, ...t.members].join('|');
-          if (seen.has(key)) return;
-          seen.add(key);
-          results.push({ label, t, est: est || estimateScore(t) });
-        }
-
+        const raw = [];
         for (const [goal, label] of goals) {
-          collectDiverseTeams(goal, 6).forEach((r, idx) => {
-            pushUnique(`${label}${idx ? ` #${idx + 1}` : ''}`, r.t, r.est);
+          collectDiverseTeams(goal, 6).forEach((r) => {
+            raw.push({ label, t: r.t, est: r.est });
           });
         }
         for (const g of ownedSynergyGroups().slice(0, 12)) {
@@ -1118,36 +1178,17 @@
             .slice(0, 10);
           for (const leader of leaders) {
             const t = buildTeamAroundLeader(leader, 'score', { preferGroup: g });
-            pushUnique(`${g}寄せ`, t);
+            if (t) raw.push({ label: `${g}寄せ`, t, est: estimateScore(t) });
           }
         }
 
-        results.sort((a, b) => b.est.scoreIndex - a.est.scoreIndex);
-        const top = results.slice(0, 16);
+        const top = mergeCandidateRows(raw).slice(0, 16);
         if (!top.length) {
           box.innerHTML = '<div class="warnbox">候補を作れません。所持を増やしてください。</div>';
           return;
         }
-        box.innerHTML = `<div class="okbox">所持カードから ${top.length} 通りの組み合わせを出しました（重複除去済み）。</div>` + top.map((r, i) => `
-      <div class="candidate">
-        <h4>#${i + 1} ${esc(r.label)} — スコア概算 ${r.est.scoreIndex.toLocaleString()}</h4>
-        <div class="hint">${esc(teamLabel(r.t))}</div>
-        ${synergyNotesHtml(r.est)}
-        <div class="stat-grid cols4" style="margin:8px 0;">
-          <div class="stat-box"><div class="v">${r.est.sum.total.toLocaleString()}</div><div class="l">Total</div></div>
-          <div class="stat-box"><div class="v">${r.est.powered.total.toLocaleString()}</div><div class="l">スキル後</div></div>
-          <div class="stat-box"><div class="v">${r.est.sum.perf.toLocaleString()}</div><div class="l">Perf</div></div>
-          <div class="stat-box"><div class="v">${r.est.sum.sense.toLocaleString()}</div><div class="l">Sense</div></div>
-        </div>
-        <details ${i < 3 ? 'open' : ''}>
-          <summary>スキル内容（衣装・パッシブ）</summary>
-          ${skillsDetailHtml(r.est)}
-        </details>
-        <div class="row">
-          <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(r.t))}">この編成を使う</button>
-          <button class="small ghost" type="button" data-action="compare-add-json" data-json="${esc(JSON.stringify(r.t))}">比較に追加</button>
-        </div>
-      </div>`).join('');
+        box.innerHTML = `<div class="okbox">所持カードから ${top.length} 通り（同じメンバー構成は「同率」でまとめ済み）。</div>`
+          + top.map((r, i) => candidateCardHtml(r, i)).join('');
         toast(`${top.length}件のシナジー候補を生成`);
       } catch (err) {
         console.error(err);
@@ -1170,13 +1211,15 @@
       const est = estimateScore(t);
       return `<div class="candidate">
         <h4>編成 ${idx + 1}</h4>
-        <div class="hint">${esc(teamLabel(t))}</div>
+        ${teamRosterHtml(t)}
+        ${synergyNotesHtml(est)}
         <div class="stat-grid" style="margin-top:8px;">
           <div class="stat-box"><div class="v">${est.scoreIndex.toLocaleString()}</div><div class="l">スコア概算</div></div>
-          <div class="stat-box"><div class="v">${est.sum.total.toLocaleString()}</div><div class="l">Total</div></div>
+          <div class="stat-box"><div class="v">${est.sum.total.toLocaleString()}</div><div class="l">総合力</div></div>
           <div class="stat-box"><div class="v">${est.sum.perf.toLocaleString()}</div><div class="l">Perf</div></div>
           <div class="stat-box"><div class="v">${est.sum.sense.toLocaleString()}</div><div class="l">Sense</div></div>
         </div>
+        ${skillsDetailHtml(est)}
         <div class="row" style="margin-top:8px;">
           <button class="small" type="button" data-action="apply-json" data-json="${esc(JSON.stringify(t))}">適用</button>
           <button class="small danger" type="button" data-action="compare-remove" data-idx="${idx}">外す</button>
@@ -1232,7 +1275,8 @@
     }
     applyTeam(t);
     const est = estimateScore(t);
-    out.innerHTML = `<div class="okbox">「${esc(song.name)}」向け編成を適用しました。<br>${esc(teamLabel(t))}<br>スコア概算 ${est.scoreIndex.toLocaleString()}</div>
+    out.innerHTML = `<div class="okbox">「${esc(song.name)}」向け編成を適用しました。<br>スコア概算 ${est.scoreIndex.toLocaleString()}</div>
+      ${teamRosterHtml(t)}
       ${synergyNotesHtml(est)}
       ${skillsDetailHtml(est)}`;
     toast('曲向け編成を適用');

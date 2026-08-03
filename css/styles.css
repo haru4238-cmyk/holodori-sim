@@ -92,11 +92,26 @@ textarea{width:100%; min-height:70px; resize:vertical}
 }
 .skill-box b{color:var(--text); font-weight:800}
 .skill-box div{margin:3px 0}
+.skill-box.skill-costume{border-color:rgba(244,211,94,.45)}
+.skill-box.skill-passive{border-color:rgba(46,196,182,.4)}
+.skill-on{color:var(--ok)!important}
+.skill-off{color:var(--warn)!important}
 .skill-panel{margin-top:6px}
-.skill-panel details{margin-top:8px}
-.skill-panel summary{
-  cursor:pointer; color:var(--accent2); font-weight:800; font-size:.78rem;
+.roster{margin:8px 0; line-height:1.7}
+.roster-leader{margin-bottom:4px}
+.leader-tag,.member-tag{
+  display:inline-block; font-size:.65rem; font-weight:900; padding:2px 8px;
+  border-radius:999px; margin-right:8px; vertical-align:middle;
 }
+.leader-tag{background:var(--gold); color:#3a2c00}
+.member-tag{background:#35556a; color:#dff}
+.leader-name{
+  font-weight:900; font-size:.95rem;
+  color:var(--gold);
+  text-shadow:0 0 18px rgba(244,211,94,.25);
+}
+.member-name{color:var(--text); font-weight:700; font-size:.82rem}
+.roster .sep{color:var(--muted); font-weight:400}
 .candidate details{margin:8px 0}
 .candidate summary{
   cursor:pointer; color:var(--accent2); font-weight:700; font-size:.78rem;

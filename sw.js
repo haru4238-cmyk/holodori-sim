@@ -1,5 +1,5 @@
 /* 同一オリジンのみキャッシュ。外部通信なし */
-const CACHE = 'holodori-sim-v7';
+const CACHE = 'holodori-sim-v8';
 const ASSETS = [
   './',
   './index.html',
